@@ -6,6 +6,7 @@ const line = require("@line/bot-sdk");
 //   createNewHomeWork,
 //   deleteHomeWork,
 // } = require("./db_helper");
+const { getNews } = require("./news_proxy");
 const express = require("express");
 require("dotenv").config();
 
@@ -38,92 +39,53 @@ async function handleBot(req, res) {
   req.body.events.map(async (event) => {
     console.log("event received");
     console.log(event);
-    if (
-      String(event.message.text) != undefined &&
-      String(event.message.text).startsWith("自己紹介")
-    ) {
-      replyRequest("自己紹介", "足立夏保です❤", event.replyToken);
+    if (event.message == undefined || event.message.text == undefined) return;
+    if (String(event.message.text).startsWith("自己紹介")) {
+      replyRequest(
+        "自己紹介",
+        "名前: 足立夏保\n年齢: 23\n出身地: シンガポール\nプロフィール: https://www.ytv.co.jp/announce/adachi_kaho/",
+        event.replyToken
+      );
+    } else if (String(event.message.text).startsWith("電話しよ")) {
+      replyRequest("", "05031873738", event.replyToken);
+    } else if (String(event.message.text).startsWith("ニュースを教えて")) {
+      let title = "ニュース";
+      let newsBody = "";
+      let resArticleCount = 3;
+      let resJson = await getNews();
+      let articles = resJson["articles"];
+      let totalResult = resJson["totalResults"];
+      if (totalResult < resArticleCount + 1) {
+        resArticleCount = totalResult;
+      }
+
+      for (let i = 0; i <= resArticleCount; i++) {
+        let newsItem = `${articles[i]["title"]}\n${articles[i]["url"]}`;
+        newsBody += newsItem;
+      }
+
+      replyRequest(title, newsBody, event.replyToken);
     }
   });
 }
-// async function handleBot(req, res) {
-//   res.status(200).end();
-//   req.body.events.map(async (event) => {
-//     console.log(event);
-//     if (String(event.message.text).startsWith("@課題削除")) {
-//       deleteItemText = String(event.message.text).split("\n");
-//       if (deleteItemText[1] !== undefined) {
-//         console.log("delete");
-//         // console.log(String(deleteItemText[1]));
-//         result = deleteHomeWork(
-//           deleteItemText[1],
-//           event.source.type === "group"
-//             ? event.source.groupId
-//             : event.source.userId
-//         );
-//         if (result) {
-//           replyRequest(
-//             "",
-//             deleteItemText[1] + "を削除しました。",
-//             event.replyToken
-//           );
-//         } else {
-//           replyRequest(
-//             "",
-//             deleteItemText[1] + "の削除に失敗しました。",
-//             event.replyToken
-//           );
-//         }
-//       }
-//     } else if (String(event.message.text).startsWith("@課題追加")) {
-//       newItemText = String(event.message.text).split("\n");
-//       // console.log(newItemText.split("\n")[2]);
-//       if (newItemText[1] !== undefined) {
-//         console.log("add");
-//         // createNewHomeWork(newItemText[1]);
-//         // console.log(newItemText[1]);
-//         // console.log(`type: ${event.source.type}`);
-//         if (event.source.type === "group") {
-//           // console.log("グループに追加");
-//           result = createNewHomeWork(newItemText[1], event.source.groupId);
-//           // console.log(`result:${result}`);
-//           if (result) {
-//             replyRequest("", "課題を追加しました", event.replyToken);
-//           } else {
-//             replyRequest("", "課題の追加に失敗しました", event.replyToken);
-//           }
-//         } else if (event.source.type === "user") {
-//           console.log("個人に追加");
-//           result = createNewHomeWork(newItemText[1], event.source.userId);
-//           if (result) {
-//             replyRequest("", "課題を追加しました", event.replyToken);
-//           } else {
-//             replyRequest("", "課題の追加に失敗しました", event.replyToken);
-//           }
-//         }
-//       }
-//     } else if (String(event.message.text).startsWith("@課題")) {
-//       console.log("list");
-//       data = await getAllData(
-//         event.source.type === "group"
-//           ? event.source.groupId
-//           : event.source.userId
-//       );
-//       homework = createHomeWorkList(data);
-//       replyRequest(
-//         "課題一覧",
-//         homework === "" ? "\n課題がありません" : homework,
-//         event.replyToken
-//       );
-//     }
-//   });
-// }
-
+// async functi
 function replyRequest(title, text, token) {
-  client.replyMessage(token, {
-    type: "text",
-    text: `${title}${text}`,
-  });
+  if (title === "") {
+    client.replyMessage(token, {
+      type: "text",
+      text: `${text}`,
+    });
+  } else if (text === "") {
+    client.replyMessage(token, {
+      type: "text",
+      text: `${title}`,
+    });
+  } else {
+    client.replyMessage(token, {
+      type: "text",
+      text: `${title}\n${text}`,
+    });
+  }
 }
 
 function createHomeWorkList(data) {

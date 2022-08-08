@@ -12,6 +12,7 @@
   "license": "ISC",
   "dependencies": {
     "@line/bot-sdk": "^7.5.0",
+    "axios": "^0.27.2",
     "dotenv": "^16.0.1",
     "express": "^4.17.3",
     "ngrok": "^4.3.1",
